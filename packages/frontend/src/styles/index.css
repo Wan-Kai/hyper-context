@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Small helper styles that reflect the design doc's look & feel */
+@layer base {
+  /* Make percentage heights (h-full) reliable by giving the top chain explicit heights */
+  html, body, #app { height: 100%; }
+}
+.project-card { @apply rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md; }
+.version-badge { @apply inline-flex items-center rounded px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800; }
+.stable-badge { @apply inline-flex items-center rounded px-2 py-1 text-xs font-medium bg-green-100 text-green-800; }
