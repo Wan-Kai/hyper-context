@@ -3,6 +3,7 @@
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,
+    // Note: do not set `ignoreDeprecations` here; TS 5.4 (vue-tsc) rejects "6.0" with TS5103 in Docker build
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

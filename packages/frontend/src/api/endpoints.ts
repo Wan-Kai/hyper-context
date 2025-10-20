@@ -92,6 +92,11 @@ export const versionApi = {
     const q = opts?.rootId ? `?rootId=${encodeURIComponent(opts.rootId)}` : ''
     return httpGet(`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionId)}/snapshot${q}`)
   }
+  ,
+  // Stable preview (system prompt text)
+  stablePreview(projectId: string): Promise<ContentResponse> {
+    return httpGet(`/projects/${encodeURIComponent(projectId)}/versions/stable/preview`)
+  }
 }
 
 // Content endpoints (main markdown and per-node structured content)

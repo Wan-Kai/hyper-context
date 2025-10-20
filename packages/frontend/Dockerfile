@@ -7,7 +7,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-workspace.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/frontend/package.json packages/frontend/
 COPY packages/shared/package.json packages/shared/
 
@@ -26,7 +26,10 @@ RUN corepack enable pnpm
 RUN pnpm --filter @hyper-context/shared build
 
 # Build frontend
-RUN pnpm --filter @hyper-context/frontend build
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+RUN echo "Building frontend with VITE_API_BASE_URL=$VITE_API_BASE_URL" \
+ && pnpm --filter @hyper-context/frontend build
 
 # Production image, copy all the files and run next
 FROM base AS runner

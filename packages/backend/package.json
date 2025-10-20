@@ -3,32 +3,37 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
-    "build": "next build",
-    "start": "next start -p 3001",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit",
-    "clean": "rm -rf .next dist",
+    "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "type-check": "tsc -p tsconfig.build.json --noEmit",
+    "clean": "rm -rf dist",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@hyper-context/shared": "workspace:*",
-    "next": "^14.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^3.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/platform-express": "^10.0.0",
     "@prisma/client": "^5.8.0",
-    "prisma": "^5.8.0"
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "prisma": "^5.8.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "^14.1.0",
-    "typescript": "~5.4.5",
-    "ts-node": "^10.9.0"
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
+    "ts-node": "^10.9.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "~5.4.5"
   }
 }

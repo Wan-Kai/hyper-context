@@ -1,6 +1,7 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { versionsMap } from './versions'
 import { trees, type Node } from './knowledge'
+import { KnowledgeNodeType, VersionStatus } from '@hyper-context/shared'
 
 // Content store per project per version
 // Each version keeps a "main" markdown and per-node content by node id
@@ -20,6 +21,7 @@ function makeStructured(params: {
   name: string
   level?: 'core' | 'extend'
   description?: string
+  coreContent?: string
   blocks?: Array<{
     name: string
     level?: 'core' | 'extend'
@@ -37,6 +39,13 @@ function makeStructured(params: {
     '</head>'
   ].join('\n')
 
+  const core = (() => {
+    if (level !== 'core' && !params.coreContent) return ''
+    const content = (params.coreContent || '').split('\n').map((l) => (l ? `    ${l}` : '')).join('\n')
+    const contentLine = params.coreContent ? `\n${content}\n  ` : ''
+    return ['<core>', `  <content>${contentLine}</content>`, '</core>'].join('\n')
+  })()
+
   const blocks = (params.blocks || []).map((b) => {
     const bLevel = b.level || 'extend'
     const content = (b.content || '').split('\n').map((l) => (l ? `    ${l}` : '')).join('\n')
@@ -52,7 +61,7 @@ function makeStructured(params: {
   }).join('\n')
 
   const extend = ['<extend>', blocks, '</extend>'].join('\n')
-  return [head, '', extend].join('\n')
+  return [head, core, extend].filter(Boolean).join('\n\n')
 }
 
 const initialContents: Record<string, Record<string, ContentBundle>> = {
@@ -281,7 +290,7 @@ export default [
       const v = list.find((x) => x.id === versionId)
       if (!v) return { status: 404, body: { message: 'Version not found' } }
       // mark published
-      v.status = 'published'
+      v.status = VersionStatus.Published
       // freeze tree snapshot at publish time
       const projectTree = trees[projectId] || []
       ;(treeSnapshots[projectId] ||= {})[versionId] = JSON.parse(JSON.stringify(projectTree))
@@ -323,14 +332,14 @@ export default [
         const auto = {
           id: versionId,
           version: 'draft',
-          status: 'draft' as const,
+          status: VersionStatus.Draft as const,
           createdAt: new Date().toISOString()
         }
         list.push(auto as any)
         version = auto as any
       }
       // resolve tree by status
-      const projectTree = (version.status === 'published'
+      const projectTree = (version.status === VersionStatus.Published
         ? (treeSnapshots[projectId] && treeSnapshots[projectId][versionId]) || trees[projectId]
         : trees[projectId]) || []
 
@@ -352,7 +361,7 @@ export default [
         const node = findNode(projectTree, rootId)
         if (!node) return []
         // if rootId points to a file, return just that file as a top-level list
-        if (node.type === 'file') return [clone(node)]
+        if (node.type === KnowledgeNodeType.File) return [clone(node)]
         // if folder, return its children, but keep folder itself as root for context
         return [clone(node)]
       }
@@ -363,7 +372,7 @@ export default [
       const fileIds: string[] = []
       function collect(list: Node[]) {
         for (const n of list) {
-          if (n.type === 'file') fileIds.push(n.id)
+          if (n.type === KnowledgeNodeType.File) fileIds.push(n.id)
           if (n.children && n.children.length) collect(n.children)
         }
       }
@@ -410,14 +419,14 @@ export default [
         if (!rootId) return clone(projectTree)
         const node = findNode(projectTree, rootId)
         if (!node) return []
-        if (node.type === 'file') return [clone(node)]
+        if (node.type === KnowledgeNodeType.File) return [clone(node)]
         return [clone(node)]
       }
       const tree = resolveTree()
       const fileIds: string[] = []
       function collect(list: Node[]) {
         for (const n of list) {
-          if (n.type === 'file') fileIds.push(n.id)
+          if (n.type === KnowledgeNodeType.File) fileIds.push(n.id)
           if (n.children && n.children.length) collect(n.children)
         }
       }
@@ -450,11 +459,11 @@ export default [
       let version = list.find((x) => x.id === versionId)
       // 若版本不存在则按草稿自动创建（配合前端持久化旧 id 的场景）
       if (!version) {
-        const auto = { id: versionId, version: 'draft', status: 'draft' as const, createdAt: new Date().toISOString() }
+        const auto = { id: versionId, version: 'draft', status: VersionStatus.Draft as const, createdAt: new Date().toISOString() }
         list.push(auto as any)
         version = auto as any
       }
-      if (version.status === 'published') return { status: 400, body: { message: 'Published version is read-only' } }
+      if (version.status === VersionStatus.Published) return { status: 400, body: { message: 'Published version is read-only' } }
       const content = (body && (body as any).content) || ''
       const bundle = ensureBundle(projectId, versionId)
       bundle.main = String(content || '')
@@ -493,11 +502,11 @@ export default [
       const list = versionsMap[projectId] || (versionsMap[projectId] = [])
       let version = list.find((x) => x.id === versionId)
       if (!version) {
-        const auto = { id: versionId, version: 'draft', status: 'draft' as const, createdAt: new Date().toISOString() }
+        const auto = { id: versionId, version: 'draft', status: VersionStatus.Draft as const, createdAt: new Date().toISOString() }
         list.push(auto as any)
         version = auto as any
       }
-      if (version.status === 'published') return { status: 400, body: { message: 'Published version is read-only' } }
+      if (version.status === VersionStatus.Published) return { status: 400, body: { message: 'Published version is read-only' } }
       const content = (body && (body as any).content) || ''
       const bundle = ensureBundle(projectId, versionId)
       bundle.nodes[nodeId] = String(content || '')

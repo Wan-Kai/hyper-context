@@ -20,27 +20,13 @@
       </div>
     </div>
 
-    <!-- Stats (placeholder) -->
-    <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-      <div class="rounded-lg border bg-white p-4">
-        <div class="text-sm text-gray-500">项目总数</div>
-        <div class="mt-1 text-2xl font-semibold">0</div>
-      </div>
-      <div class="rounded-lg border bg-white p-4">
-        <div class="text-sm text-gray-500">有稳定版的项目</div>
-        <div class="mt-1 text-2xl font-semibold">0</div>
-      </div>
-      <div class="rounded-lg border bg-white p-4">
-        <div class="text-sm text-gray-500">MCP 运行</div>
-        <div class="mt-1 text-2xl font-semibold">0</div>
-      </div>
-    </div>
+    <!-- Removed summary stats per request: 项目总数 / 有稳定版的项目 / MCP 运行 -->
 
     <!-- Projects grid -->
     <!-- 项目网格：调低大屏列数以放宽卡片宽度 -->
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
       <div v-for="p in projects" :key="p.id" class="project-card cursor-default">
-        <div class="mb-3 flex items-start justify-between">
+        <div class="mb-3 flex items-start justify-between gap-12">
           <h3 class="truncate text-lg font-semibold">{{ p.name }}</h3>
           <div class="flex items-center gap-2">
             <!-- 稳定版显示：无稳定版时用 '—' 占位 -->
@@ -90,6 +76,15 @@
               <TrashIcon class="h-5 w-5" />
             </button>
           </Tooltip>
+          <Tooltip text="官方 MCP 测试">
+            <button
+              @click="testMcpOfficial(p)"
+              class="rounded p-1 text-gray-600 hover:bg-gray-100"
+              aria-label="官方 MCP 测试"
+            >
+              <span class="text-xs px-2 py-1 border rounded">MCP</span>
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -126,11 +121,13 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { projectApi } from '@/api/endpoints'
 import type { Project } from '@/api/types'
+import { McpStatus } from '@/api/types'
 import moment from 'moment'
 import ProjectFormModal from '@/components/modals/ProjectFormModal.vue'
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal.vue'
 import Tooltip from '@/components/Tooltip.vue'
 import { PencilSquareIcon, Cog6ToothIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { toolsList } from '@/mcp/rpc'
 
 const projects = ref<Project[]>([])
 const query = ref('')
@@ -232,12 +229,24 @@ function goPromptEditor(p: Project) {
   router.push({ name: 'ProjectEditor', params: { id: p.id } })
 }
 
+async function testMcpOfficial(p: Project) {
+  try {
+    const list = await toolsList(p.id)
+    console.log('[Dashboard] MCP tools/list =>', list)
+    // quick user feedback without global toast: basic alert
+    alert('MCP OK: 已列出工具，详见控制台')
+  } catch (e) {
+    console.error('[Dashboard] MCP tools/list failed', e)
+    alert('MCP 测试失败，详见控制台')
+  }
+}
+
 // MCP 状态徽标样式（颜色仅作用于徽标本身，尽量不干扰卡片主体）
 function mcpBadgeClass(status: Project['mcpStatus']) {
   switch (status) {
-    case 'active':
+    case McpStatus.Active:
       return 'bg-green-50 text-green-700 border border-green-100'
-    case 'error':
+    case McpStatus.Error:
       return 'bg-red-50 text-red-700 border border-red-100'
     default:
       return 'bg-gray-50 text-gray-600 border border-gray-100'
@@ -245,9 +254,9 @@ function mcpBadgeClass(status: Project['mcpStatus']) {
 }
 function mcpDotClass(status: Project['mcpStatus']) {
   switch (status) {
-    case 'active':
+    case McpStatus.Active:
       return 'bg-green-500'
-    case 'error':
+    case McpStatus.Error:
       return 'bg-red-500'
     default:
       return 'bg-gray-400'

@@ -26,13 +26,23 @@ chmod +x scripts/dev.sh
 ./scripts/dev.sh
 ```
 
+单独启动（按包）
+```bash
+# 仅前端
+pnpm --filter @hyper-context/frontend dev
+
+# 仅后端（NestJS，默认 3001，前缀 /api）
+pnpm --filter @hyper-context/backend dev
+# 健康检查: GET http://localhost:3001/api/health  -> { "status": "ok" }
+```
+
 ### 项目结构
 
 ```
 hyper-context/
 ├── packages/
 │   ├── frontend/          # Vue3 前端应用
-│   ├── backend/           # Next.js 后端服务
+│   ├── backend/           # NestJS 后端服务
 │   └── shared/            # 共享类型和工具
 ├── scripts/               # 构建和部署脚本
 ├── database/              # SQLite 数据库文件
@@ -77,7 +87,7 @@ pnpm docker:down           # 停止 Docker 服务
 ### 技术栈
 
 - **前端**: Vue 3 + Vite + TypeScript + Tailwind CSS
-- **后端**: Next.js 14 + Prisma + SQLite
+- **后端**: NestJS 10 + Prisma + SQLite
 - **工具链**: pnpm + Docker + ESLint + Prettier
 
 ## 详细文档

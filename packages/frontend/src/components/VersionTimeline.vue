@@ -45,7 +45,7 @@
                 <CheckBadgeIcon class="h-3 w-3" /> 稳定
               </span>
               <span
-                v-if="v.status === 'draft'"
+                v-if="v.status === VersionStatus.Draft"
                 class="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700"
                 title="草稿（未发布）"
               >
@@ -57,17 +57,17 @@
             </div>
           </div>
           <div class="shrink-0 space-x-1">
-            <Tooltip :text="v.isStable ? '已是稳定版' : (v.status === 'draft' ? '草稿不可设为稳定' : '设为稳定版')">
+            <Tooltip :text="v.isStable ? '已是稳定版' : (v.status === VersionStatus.Draft ? '草稿不可设为稳定' : '设为稳定版')">
               <button
                 class="inline-flex items-center justify-center rounded p-1"
                 :class="
                   v.isStable
                     ? 'text-gray-300 cursor-not-allowed'
-                    : v.status === 'draft'
+                    : v.status === VersionStatus.Draft
                       ? 'text-gray-300 cursor-not-allowed'
                       : 'text-gray-600 hover:bg-gray-100'
                 "
-                :disabled="v.isStable || v.status === 'draft'"
+                :disabled="v.isStable || v.status === VersionStatus.Draft"
                 @click="$emit('mark-stable', v.id)"
                 aria-label="设为稳定版"
               >
@@ -86,14 +86,8 @@ import moment from 'moment'
 import { computed } from 'vue'
 import Tooltip from './Tooltip.vue'
 import { PlusCircleIcon, CheckBadgeIcon } from '@heroicons/vue/24/outline'
-
-type Version = {
-  id: string
-  version: string
-  isStable?: boolean
-  createdAt?: string
-  status?: 'draft' | 'published'
-}
+import type { Version } from '@/api/types'
+import { VersionStatus } from '@/api/types'
 const props = defineProps<{ versions: Version[]; currentId: string; showHeader?: boolean }>()
 defineEmits<{
   (e: 'select', id: string): void

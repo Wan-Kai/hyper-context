@@ -53,7 +53,15 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
 database/*.db
+database/*.db-shm
+database/*.db-wal
+database/*.db-journal
+# Keep docs in database folder
+!database/README.md
 
 # Temporary files
 tmp/

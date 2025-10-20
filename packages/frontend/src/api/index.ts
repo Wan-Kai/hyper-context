@@ -18,8 +18,10 @@ export class HttpError extends Error {
 }
 
 // Create an axios instance for our app
+// Use VITE_API_BASE_URL if provided at build-time (via Vite env), fallback to '/api'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api'
 const instance: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

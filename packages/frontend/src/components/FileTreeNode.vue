@@ -3,8 +3,8 @@
     <div
       class="group relative flex h-7 items-center gap-1 rounded px-2 text-sm hover:bg-gray-100"
       :class="[
-        { 'bg-gray-200': selectedId === node.id && node.type === 'file' },
-        editable && hoverPos === 'inside' && node.type === 'folder' ? 'ring-2 ring-primary-500 ring-inset' : ''
+        { 'bg-gray-200': selectedId === node.id && node.type === KnowledgeNodeType.File },
+        editable && hoverPos === 'inside' && node.type === KnowledgeNodeType.Folder ? 'ring-2 ring-primary-500 ring-inset' : ''
       ]"
       :style="{ paddingLeft: depth * 12 + 'px' }"
       :draggable="editable"
@@ -25,7 +25,7 @@
       ></div>
       <Tooltip :text="expandedIds.has(node.id) ? '收起' : '展开'">
         <button
-          v-if="node.type === 'folder'"
+          v-if="node.type === KnowledgeNodeType.Folder"
           class="flex h-5 w-5 items-center justify-center text-gray-600 hover:text-gray-800"
           @click="$emit('toggle', node.id)"
           aria-label="Toggle"
@@ -37,7 +37,7 @@
       </Tooltip>
 
       <span class="flex h-5 w-5 items-center justify-center text-gray-500">
-        <FolderIcon v-if="node.type === 'folder'" class="h-4 w-4" />
+        <FolderIcon v-if="node.type === KnowledgeNodeType.Folder" class="h-4 w-4" />
         <DocumentTextIcon v-else class="h-4 w-4" />
       </span>
       <button
@@ -48,7 +48,7 @@
         {{ node.name }}
       </button>
       <div v-if="editable" class="invisible ml-1 flex items-center gap-1 group-hover:visible">
-        <Tooltip v-if="node.type === 'folder'" text="新建文件">
+        <Tooltip v-if="node.type === KnowledgeNodeType.Folder" text="新建文件">
           <button
             class="rounded p-1 text-gray-600 hover:bg-gray-200"
             @click.stop="$emit('create-file', node.id)"
@@ -56,7 +56,7 @@
             <DocumentPlusIcon class="h-4 w-4" />
           </button>
         </Tooltip>
-        <Tooltip v-if="node.type === 'folder'" text="新建文件夹">
+        <Tooltip v-if="node.type === KnowledgeNodeType.Folder" text="新建文件夹">
           <button
             class="rounded p-1 text-gray-600 hover:bg-gray-200"
             @click.stop="$emit('create-folder', node.id)"
@@ -84,7 +84,7 @@
     </div>
     <div
       v-if="
-        node.type === 'folder' && expandedIds.has(node.id) && node.children && node.children.length
+        node.type === KnowledgeNodeType.Folder && expandedIds.has(node.id) && node.children && node.children.length
       "
     >
       <FileTreeNode
@@ -123,30 +123,23 @@ import {
   PencilSquareIcon
 } from '@heroicons/vue/24/outline'
 import Tooltip from './Tooltip.vue'
-
-type NodeType = 'file' | 'folder'
-interface Node {
-  id: string
-  name: string
-  type: NodeType
-  parentId?: string | null
-  children?: Node[]
-}
+import type { KnowledgeNode } from '@/api/types'
+import { KnowledgeNodeType } from '@/api/types'
 
 const props = defineProps({
-  node: { type: Object as PropType<Node>, required: true },
+  node: { type: Object as PropType<KnowledgeNode>, required: true },
   depth: { type: Number, required: true },
   expandedIds: { type: Object as PropType<Set<string>>, required: true },
   selectedId: { type: String as PropType<string | null>, default: null },
   editable: { type: Boolean, default: true },
   // siblings of current node (to support before/after drop)
-  siblings: { type: Array as PropType<Node[]>, required: true },
+  siblings: { type: Array as PropType<KnowledgeNode[]>, required: true },
   index: { type: Number, required: true }
 })
 
 const emit = defineEmits<{
   (e: 'toggle', id: string): void
-  (e: 'select', node: Node): void
+  (e: 'select', node: KnowledgeNode): void
   (e: 'create-file', parentId: string | null): void
   (e: 'create-folder', parentId: string | null): void
   (e: 'delete-node', id: string): void
@@ -158,7 +151,7 @@ const emit = defineEmits<{
 }>()
 
 function onNameClick() {
-  if (props.node.type === 'folder') emit('toggle', props.node.id)
+  if (props.node.type === KnowledgeNodeType.Folder) emit('toggle', props.node.id)
   else emit('select', props.node)
 }
 
@@ -207,7 +200,7 @@ function onDrop(e: DragEvent) {
 
   const pos = calcHoverPos(e)
 
-  if (pos === 'inside' && props.node.type === 'folder') {
+  if (pos === 'inside' && props.node.type === KnowledgeNodeType.Folder) {
     // Drop into folder: append to end
     emit('move-node', { nodeId: draggedId, targetParentId: thisId })
     return

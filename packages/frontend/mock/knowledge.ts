@@ -1,46 +1,39 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { contentsMap, versionsMap } from './knowledge-content'
-
-type NodeType = 'file' | 'folder'
-export interface Node {
-  id: string
-  name: string
-  type: NodeType
-  parentId?: string | null
-  children?: Node[]
-}
+import type { KnowledgeNode as Node } from '@hyper-context/shared'
+import { KnowledgeNodeType, VersionStatus } from '@hyper-context/shared'
 
 // in-memory knowledge trees keyed by project id
 const initialTrees: Record<string, Node[]> = {
   'p-001': [
-    { id: 'k-01', name: '介绍.md', type: 'file', parentId: null },
+    { id: 'k-01', name: '介绍.md', type: KnowledgeNodeType.File, parentId: null },
     {
       id: 'k-02',
       name: '指南',
-      type: 'folder',
+      type: KnowledgeNodeType.Folder,
       parentId: null,
       children: [
-        { id: 'k-02-01', name: '快速开始.md', type: 'file', parentId: 'k-02' },
+        { id: 'k-02-01', name: '快速开始.md', type: KnowledgeNodeType.File, parentId: 'k-02' },
         {
           id: 'k-02-02',
           name: '高级',
-          type: 'folder',
+          type: KnowledgeNodeType.Folder,
           parentId: 'k-02',
           children: [
-            { id: 'k-02-02-01', name: '配置.md', type: 'file', parentId: 'k-02-02' },
-            { id: 'k-02-02-02', name: '性能优化.md', type: 'file', parentId: 'k-02-02' }
+            { id: 'k-02-02-01', name: '配置.md', type: KnowledgeNodeType.File, parentId: 'k-02-02' },
+            { id: 'k-02-02-02', name: '性能优化.md', type: KnowledgeNodeType.File, parentId: 'k-02-02' }
           ]
         },
-        { id: 'k-02-03', name: '最佳实践.md', type: 'file', parentId: 'k-02' }
+        { id: 'k-02-03', name: '最佳实践.md', type: KnowledgeNodeType.File, parentId: 'k-02' }
       ]
     },
     {
       id: 'k-03',
       name: '参考',
-      type: 'folder',
+      type: KnowledgeNodeType.Folder,
       parentId: null,
       children: [
-        { id: 'k-03-01', name: 'API 列表.md', type: 'file', parentId: 'k-03' }
+        { id: 'k-03-01', name: 'API 列表.md', type: KnowledgeNodeType.File, parentId: 'k-03' }
       ]
     }
   ],
@@ -61,7 +54,7 @@ function findNodeAndParent(
 ): { node: Node | null; parent: Node | null } {
   for (const n of list) {
     if (n.id === id) return { node: n, parent }
-    if (n.type === 'folder' && n.children && n.children.length) {
+    if (n.type === KnowledgeNodeType.Folder && n.children && n.children.length) {
       const res = findNodeAndParent(n.children, id, n)
       if (res.node) return res
     }
@@ -76,7 +69,7 @@ function removeNode(list: Node[], id: string): boolean {
     return true
   }
   for (const n of list) {
-    if (n.type === 'folder' && n.children) {
+    if (n.type === KnowledgeNodeType.Folder && n.children) {
       const ok = removeNode(n.children, id)
       if (ok) return true
     }
@@ -87,7 +80,7 @@ function removeNode(list: Node[], id: string): boolean {
 function getChildrenOf(list: Node[], parentId: string | null | undefined): Node[] {
   if (!parentId) return list
   const { node: parent } = findNodeAndParent(list, parentId)
-  if (parent && parent.type === 'folder') {
+  if (parent && parent.type === KnowledgeNodeType.Folder) {
     parent.children = parent.children || []
     return parent.children
   }
@@ -130,10 +123,10 @@ export default [
       let v = vs.find((x: any) => x.id === versionId)
       if (!v) {
         // auto-create as draft for robustness in dev
-        v = { id: versionId, version: 'draft', status: 'draft' as const, createdAt: new Date().toISOString() }
+        v = { id: versionId, version: 'draft', status: VersionStatus.Draft as const, createdAt: new Date().toISOString() }
         vs.push(v)
       }
-      if (v.status === 'published') {
+      if (v.status === VersionStatus.Published) {
         return { status: 400, body: { message: 'Published version is read-only' } }
       }
       const { node, parent } = findNodeAndParent(list, nodeId)
@@ -181,7 +174,7 @@ export default [
       const { parentId, name, type } = (body || {}) as {
         parentId?: string | null
         name?: string
-        type?: NodeType
+        type?: KnowledgeNodeType
       }
       if (!name || !type) {
         return { status: 400, body: { message: 'Invalid payload' } }
@@ -191,14 +184,14 @@ export default [
         name,
         type,
         parentId: parentId ?? null,
-        children: type === 'folder' ? [] : undefined
+        children: type === KnowledgeNodeType.Folder ? [] : undefined
       }
       const list = trees[projectId] || (trees[projectId] = [])
       if (!parentId) {
         list.push(newNode)
       } else {
         const { node: parent } = findNodeAndParent(list, parentId)
-        if (!parent || parent.type !== 'folder') {
+        if (!parent || parent.type !== KnowledgeNodeType.Folder) {
           return { status: 400, body: { message: 'Parent not found or not a folder' } }
         }
         parent.children = parent.children || []
@@ -206,8 +199,8 @@ export default [
       }
       // Initialize draft content for the latest draft version (if any)
       try {
-        const draft = (versionsMap[projectId] || []).find((v) => v.status === 'draft')
-        if (draft && newNode.type === 'file') {
+        const draft = (versionsMap[projectId] || []).find((v) => v.status === VersionStatus.Draft)
+        if (draft && newNode.type === KnowledgeNodeType.File) {
           const pv = (contentsMap[projectId] ||= {})
           const bundle = (pv[draft.id] ||= { main: pv[draft.id]?.main || '', nodes: pv[draft.id]?.nodes || {} })
           const structuredDraft = [
@@ -216,6 +209,12 @@ export default [
             '  <level>core</level>',
             '  <description>草稿：请补充描述</description>',
             '</head>',
+            '',
+            '<core>',
+            '  <content>',
+            '    初始核心内容草稿',
+            '  </content>',
+            '</core>',
             '',
             '<extend>',
             '  <block>',

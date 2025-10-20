@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "dev": "VITE_USE_MOCK=false vite",
+    "build": "vue-tsc --noEmit -p tsconfig.app.json --composite false && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "type-check": "vue-tsc --noEmit -p tsconfig.app.json --composite false",
-    "clean": "rm -rf dist node_modules/.vite"
+    "clean": "rm -rf dist node_modules/.vite",
+    "dev:local": "vite"
   },
   "dependencies": {
     "@codemirror/lang-markdown": "^6.3.4",
@@ -21,6 +22,7 @@
     "@hyper-context/shared": "workspace:*",
     "@lezer/highlight": "^1.2.1",
     "axios": "^1.6.0",
+    "gpt-tokenizer": "^2.1.2",
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.0",
     "moment": "^2.30.1",

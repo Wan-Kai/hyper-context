@@ -1,4 +1,5 @@
 import type { MockMethod } from 'vite-plugin-mock'
+import { KnowledgeNodeType, McpStatus } from '@hyper-context/shared'
 
 // in-memory dataset for dev mocks (shared via globalThis to survive HMR and cross-module updates)
 const gm = globalThis as any
@@ -14,7 +15,7 @@ const initialProjects = [
     knowledgeCount: 18,
     // 与 versions.ts 中的稳定版保持一致：2.1.0
     stableVersion: '2.1.0',
-    mcpStatus: 'active',
+    mcpStatus: McpStatus.Active,
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
   },
   {
@@ -24,7 +25,7 @@ const initialProjects = [
     knowledgeCount: 9,
     // 与 versions.ts 中的稳定版保持一致：0.9.0
     stableVersion: '0.9.0',
-    mcpStatus: 'inactive',
+    mcpStatus: McpStatus.Inactive,
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()
   },
   {
@@ -34,7 +35,7 @@ const initialProjects = [
     knowledgeCount: 27,
     // 与 versions.ts 中的稳定版保持一致：2.0.0
     stableVersion: '2.0.0',
-    mcpStatus: 'active',
+    mcpStatus: McpStatus.Active,
     updatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString()
   }
 ]
@@ -55,8 +56,10 @@ export default [
         list = list.map((p) => {
           const tree = (trees && trees[p.id]) || []
           const countFiles = (nodes: any[]): number =>
-            nodes.reduce((acc: number, n: any) => acc + (n.type === 'file' ? 1 : 0) + (n.children ? countFiles(n.children) : 0), 0)
-          return { ...p, knowledgeCount: countFiles(tree) }
+            nodes.reduce((acc: number, n: any) => acc + (n.type === KnowledgeNodeType.File ? 1 : 0) + (n.children ? countFiles(n.children) : 0), 0)
+          // 规则：有稳定版本则视为 MCP active（仅 dev mock 层默认）
+          const mcp = p.stableVersion && p.stableVersion !== '—' ? 'active' : p.mcpStatus
+          return { ...p, knowledgeCount: countFiles(tree), mcpStatus: mcp }
         })
       } catch (_) {}
       if (q) list = list.filter((p) => p.name.toLowerCase().includes(q))
@@ -75,15 +78,17 @@ export default [
       if (!item) {
         return { status: 404, body: { message: 'Not Found' } }
       }
-      // 动态计算 knowledgeCount
+      // 动态计算 knowledgeCount，并按稳定版规则推导 MCP 状态
       try {
         const { trees } = require('./knowledge') as any
         const tree = (trees && trees[item.id]) || []
         const countFiles = (nodes: any[]): number =>
-          nodes.reduce((acc: number, n: any) => acc + (n.type === 'file' ? 1 : 0) + (n.children ? countFiles(n.children) : 0), 0)
-        return { ...item, knowledgeCount: countFiles(tree) }
+          nodes.reduce((acc: number, n: any) => acc + (n.type === KnowledgeNodeType.File ? 1 : 0) + (n.children ? countFiles(n.children) : 0), 0)
+        const mcp = item.stableVersion && item.stableVersion !== '—' ? 'active' : item.mcpStatus
+        return { ...item, knowledgeCount: countFiles(tree), mcpStatus: mcp }
       } catch (_) {
-        return item
+        const mcp = item.stableVersion && item.stableVersion !== '—' ? 'active' : item.mcpStatus
+        return { ...item, mcpStatus: mcp }
       }
     }
   },
@@ -106,7 +111,7 @@ export default [
         knowledgeCount: 0,
         // 新项目暂无稳定版，按约定显示为 '—'
         stableVersion: '—',
-        mcpStatus: 'inactive',
+        mcpStatus: McpStatus.Inactive,
         updatedAt: now
       }
       projects.unshift(project)

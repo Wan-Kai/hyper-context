@@ -11,8 +11,12 @@
             <DialogPanel class="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl">
               <DialogTitle class="text-lg font-medium text-gray-900">新建版本</DialogTitle>
               <div class="mt-2 text-sm text-gray-600">
-                当前版本：<span class="font-medium text-gray-900">{{ latestVersion || '0.0.0' }}</span>，请选择要创建的版本类型。
+                当前版本：<span class="font-medium text-gray-900">{{ latestVersion || '0.0.0' }}</span>
               </div>
+              <div class="mt-1 text-xs text-gray-500">
+                新建版本将以“最新已发布”版本的内容为基准进行初始化
+              </div>
+              
               <div class="mt-4 grid gap-3">
                 <button
                   type="button"
@@ -112,4 +116,3 @@ function submit(bump: Bump) {
 </script>
 
 <!-- Consistent HeadlessUI modal used across the app -->
-

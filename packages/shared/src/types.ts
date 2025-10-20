@@ -2,7 +2,12 @@
 // 说明：与 packages/frontend/src/api/types.ts 及《后端接口+数据库设计.md》保持口径一致。
 
 // ------- 通用 -------
-export type McpStatus = 'active' | 'inactive' | 'error'
+// 使用字符串枚举以避免在代码中直接散落 'active' 之类的字面量
+export enum McpStatus {
+  Active = 'active',
+  Inactive = 'inactive',
+  Error = 'error'
+}
 
 // 某些服务仍可能返回信封结构，这里保留泛型定义以备不时之需。
 export interface ApiResponse<T = unknown> {
@@ -37,7 +42,11 @@ export type UpdateProjectRequest = Partial<
 >
 
 // ------- 知识目录树 Knowledge -------
-export type KnowledgeNodeType = 'file' | 'folder'
+// 目录树节点类型：统一使用枚举，避免魔法字符串
+export enum KnowledgeNodeType {
+  File = 'file',
+  Folder = 'folder'
+}
 
 export interface KnowledgeNode {
   id: string
@@ -64,7 +73,11 @@ export interface MoveKnowledgeNodeRequest {
 }
 
 // ------- 版本 Version / 内容 -------
-export type VersionStatus = 'draft' | 'published'
+// 版本状态：统一使用枚举
+export enum VersionStatus {
+  Draft = 'draft',
+  Published = 'published'
+}
 
 export interface Version {
   id: string
@@ -98,6 +111,40 @@ export interface ContentPayload {
   content: string
 }
 export type ContentResponse = ContentPayload
+
+// ------- 结构化知识文档（前端/后端约定的字符串结构）-------
+// 约定的串行化格式为接近 XML 的文本：
+// <head>
+//   <name>文件名.md</name>
+//   <level>core|extend</level>
+//   <description>简介</description>
+// </head>
+// <core>
+//   <content>可选，仅当 level=core 时使用</content>
+// </core>
+// <extend>
+//   <block> ... </block>
+//   <block> ... </block>
+// </extend>
+export type KnowledgeLevel = 'core' | 'extend'
+export interface StructuredHead {
+  name: string
+  level: KnowledgeLevel
+  description: string
+  // 当 level === 'core' 时用于编辑核心内容；其余等级可忽略
+  coreContent?: string
+}
+export interface StructuredExtendBlock {
+  id?: string
+  name: string
+  level: KnowledgeLevel
+  description: string
+  content: string
+}
+export interface StructuredDoc {
+  head: StructuredHead
+  extend: StructuredExtendBlock[]
+}
 
 // ------- 可选：分页响应（当前未启用，保留以便未来支持）
 export interface PaginatedResponse<T> {

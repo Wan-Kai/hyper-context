@@ -1,8 +1,8 @@
 <template>
   <!-- App shell uses flex layout so pages can consume the remaining height below the header -->
   <div class="min-h-screen h-screen bg-gray-50 text-gray-900 flex flex-col">
-    <!-- Header -->
-    <header class="border-b bg-white shrink-0">
+    <!-- Header (hidden on ProjectEditor) -->
+    <header v-if="showHeader" class="border-b bg-white shrink-0">
       <div class="mx-auto max-w-7xl px-4 py-4">
         <h1 class="text-xl font-semibold">Hyper Context</h1>
       </div>
@@ -29,4 +29,10 @@
 
 <script setup lang="ts">
 // App shell renders the layout and a <router-view/>; pages live under src/views.
+import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+
+const route = useRoute()
+// Hide the global header on the ProjectEditor page for a distraction-free editor
+const showHeader = computed(() => route.name !== 'ProjectEditor')
 </script>

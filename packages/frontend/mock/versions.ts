@@ -1,13 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
-
-type Version = {
-  id: string
-  version: string
-  isStable?: boolean
-  createdAt: string
-  notes?: string
-  status?: 'draft' | 'published'
-}
+import type { Version } from '@hyper-context/shared'
+import { VersionStatus } from '@hyper-context/shared'
 
 const now = Date.now()
 // Keep counters in global to survive hot reloads
@@ -20,7 +13,7 @@ function make(
   offsetHours: number,
   stable = false,
   notes?: string,
-  status: 'draft' | 'published' = 'published'
+  status: VersionStatus = VersionStatus.Published
 ): Version {
   return {
     id,
@@ -35,25 +28,25 @@ function make(
 // Exported for other mocks (e.g. knowledge content) to reference current stable version
 const initialVersions: Record<string, Version[]> = {
   'p-001': [
-    make('v-2.1.0', '2.1.0', 24 * 24, true, '稳定发布', 'published'),
-    make('v-2.2.0', '2.2.0', 24 * 20, false, '性能优化', 'published'),
-    make('v-2.3.0', '2.3.0', 24 * 15, false, '新功能 A', 'published'),
-    make('v-2.3.1', '2.3.1', 24 * 13, false, 'Bug 修复', 'published'),
-    make('v-2.4.0', '2.4.0', 24 * 10, false, '功能 B 与改进', 'published'),
-    make('v-2.5.0-beta', '2.5.0-beta', 24 * 6, false, 'Beta 版', 'published'),
-    make('v-2.5.0-rc.1', '2.5.0-rc.1', 24 * 2, false, 'RC1', 'published'),
-    make('v-2.5.0-rc.2', '2.5.0-rc.2', 36, false, 'RC2', 'published')
+    make('v-2.1.0', '2.1.0', 24 * 24, true, '稳定发布', VersionStatus.Published),
+    make('v-2.2.0', '2.2.0', 24 * 20, false, '性能优化', VersionStatus.Published),
+    make('v-2.3.0', '2.3.0', 24 * 15, false, '新功能 A', VersionStatus.Published),
+    make('v-2.3.1', '2.3.1', 24 * 13, false, 'Bug 修复', VersionStatus.Published),
+    make('v-2.4.0', '2.4.0', 24 * 10, false, '功能 B 与改进', VersionStatus.Published),
+    make('v-2.5.0-beta', '2.5.0-beta', 24 * 6, false, 'Beta 版', VersionStatus.Published),
+    make('v-2.5.0-rc.1', '2.5.0-rc.1', 24 * 2, false, 'RC1', VersionStatus.Published),
+    make('v-2.5.0-rc.2', '2.5.0-rc.2', 36, false, 'RC2', VersionStatus.Published)
   ],
   'p-002': [
-    make('v-0.9.0', '0.9.0', 24 * 40, true, undefined, 'published'),
-    make('v-0.9.1', '0.9.1', 24 * 30, false, undefined, 'published'),
-    make('v-0.9.2', '0.9.2', 24 * 20, false, undefined, 'published'),
-    make('v-1.0.0-beta', '1.0.0-beta', 24 * 10, false, undefined, 'published')
+    make('v-0.9.0', '0.9.0', 24 * 40, true, undefined, VersionStatus.Published),
+    make('v-0.9.1', '0.9.1', 24 * 30, false, undefined, VersionStatus.Published),
+    make('v-0.9.2', '0.9.2', 24 * 20, false, undefined, VersionStatus.Published),
+    make('v-1.0.0-beta', '1.0.0-beta', 24 * 10, false, undefined, VersionStatus.Published)
   ],
   'p-003': [
-    make('v-2.0.0', '2.0.0', 24 * 50, true, undefined, 'published'),
-    make('v-2.1.0', '2.1.0', 24 * 35, false, undefined, 'published'),
-    make('v-2.2.0', '2.2.0', 24 * 15, false, undefined, 'published')
+    make('v-2.0.0', '2.0.0', 24 * 50, true, undefined, VersionStatus.Published),
+    make('v-2.1.0', '2.1.0', 24 * 35, false, undefined, VersionStatus.Published),
+    make('v-2.2.0', '2.2.0', 24 * 15, false, undefined, VersionStatus.Published)
   ]
 }
 
@@ -81,7 +74,7 @@ export default [
       let v = list.find((x) => x.id === vid)
       if (!v) {
         // Auto-create as draft when missing to smooth dev reloads
-        v = { id: vid, version: 'draft', createdAt: new Date().toISOString(), status: 'draft' }
+        v = { id: vid, version: 'draft', createdAt: new Date().toISOString(), status: VersionStatus.Draft }
         list.push(v as any)
       }
       return v
@@ -108,8 +101,13 @@ export default [
       const list = versionsMap[projectId] || (versionsMap[projectId] = [])
       const version = (body && (body as any).version) || `0.0.${(globalThis as any).__HC_VER_SEQ__++}`
       const notes = (body && (body as any).notes) || ''
+      // Duplicate check: if conflict, return 400 to mimic backend behavior
+      const used = new Set(list.map((v) => v.version))
+      if (used.has(version)) {
+        return { status: 400, body: { message: 'Version already exists' } }
+      }
       const id = `v-${Date.now()}`
-      const v: Version = { id, version, createdAt: new Date().toISOString(), notes, status: 'draft' }
+      const v: Version = { id, version, createdAt: new Date().toISOString(), notes, status: VersionStatus.Draft }
       list.push(v)
       return v
     }
@@ -124,7 +122,7 @@ export default [
       const list = versionsMap[projectId] || (versionsMap[projectId] = [])
       const t = list.find((x) => x.id === vid)
       if (!t) return { status: 404, body: { message: 'Version not found' } }
-      if (t.status !== 'published') {
+      if (t.status !== VersionStatus.Published) {
         return { status: 400, body: { message: 'Only published versions can be marked stable' } }
       }
       for (const v of list) v.isStable = undefined
@@ -136,6 +134,8 @@ export default [
         const p = projects.find((p: any) => p.id === projectId)
         if (p) {
           p.stableVersion = t.version || '—'
+          // 规则：有稳定版本视为 MCP active
+          p.mcpStatus = 'active'
           p.updatedAt = new Date().toISOString()
         }
       } catch (_) {}

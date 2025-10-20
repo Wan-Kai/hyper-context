@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    // Use modern resolution to avoid deprecated Node10 algorithm.
-    // 'bundler' matches how tools like Vite/Webpack resolve packages and supports exports/imports.
-    "moduleResolution": "bundler",
+    // Node-style ESM emit and resolution; ensures d.ts uses .js extensions for relative imports
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,

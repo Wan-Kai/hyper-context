@@ -16,12 +16,13 @@ fi
 
 # 启动数据库（如果需要）
 echo "🗄️ 检查数据库状态..."
-if [ ! -f "database/dev.db" ]; then
+if [ ! -f "database/hyper-context.db" ]; then
   echo "📊 初始化数据库..."
   if [ -f "packages/backend/prisma/schema.prisma" ]; then
     pnpm db:generate
     pnpm db:push
-    if [ -f "packages/backend/prisma/seed.ts" ]; then
+    # 运行种子（支持 .ts/.js 任一存在时）
+    if [ -f "packages/backend/prisma/seed.ts" ] || [ -f "packages/backend/prisma/seed.js" ]; then
       pnpm db:seed
     fi
   else
@@ -32,7 +33,7 @@ fi
 # 并行启动前端和后端
 echo "🎯 启动开发服务器..."
 echo "前端: http://localhost:3000"
-echo "后端: http://localhost:3001"
+echo "后端(Nest): http://localhost:3001  (健康检查: /api/health)"
 echo ""
 echo "按 Ctrl+C 停止服务器"
 

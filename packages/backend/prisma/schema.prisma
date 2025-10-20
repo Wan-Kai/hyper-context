@@ -1,0 +1,133 @@
+// Prisma schema for Hyper Context
+// Datasource points to SQLite via DATABASE_URL; in dev, see packages/backend/.env
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Note: SQLite connector does not support Prisma enums/JSON.
+// We use strings for status/type fields and JSON-encode objects into TEXT.
+
+model Project {
+  id              String      @id @default(cuid())
+  name            String
+  description     String?
+  stableVersionId String?     @map("stable_version_id")
+  mcpStatus       String      @default("inactive") @map("mcp_status") // 'active'|'inactive'|'error'
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  deletedAt       DateTime?   @map("deleted_at")
+
+  // Relations
+  nodes           KnowledgeNode[]
+  versions        Version[]
+  mcpConfigs      McpConfig[]
+  stableVersion   Version?    @relation("StableVersion", fields: [stableVersionId], references: [id])
+  versionContents VersionContent[]
+
+  @@map("projects")
+  @@index([name], name: "idx_projects_name")
+  @@index([updatedAt], name: "idx_projects_updated_at")
+}
+
+model KnowledgeNode {
+  id         String        @id @default(cuid())
+  projectId  String        @map("project_id")
+  name       String
+  type       String        // 'file' | 'folder'
+  parentId   String?       @map("parent_id")
+  sortOrder  Int           @default(0) @map("sort_order")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent     KnowledgeNode? @relation("NodeHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children   KnowledgeNode[] @relation("NodeHierarchy")
+  nodeContents NodeContent[]
+
+  @@map("knowledge_nodes")
+  @@index([projectId], name: "idx_kn_project")
+  @@index([parentId], name: "idx_kn_parent")
+  @@index([parentId, sortOrder], name: "idx_kn_sort")
+}
+
+model Version {
+  id           String         @id @default(cuid())
+  projectId    String         @map("project_id")
+  version      String
+  status       String         @default("draft") // 'draft' | 'published'
+  isStable     Boolean        @default(false) @map("is_stable")
+  notes        String?
+  treeSnapshot String?        @map("tree_snapshot") // JSON string of frozen tree
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stableProjects Project[] @relation("StableVersion")
+  content        VersionContent?
+  nodeContents   NodeContent[]
+
+  @@unique([projectId, version], name: "uk_versions_proj_ver")
+  @@map("versions")
+  @@index([projectId], name: "idx_versions_proj")
+  @@index([projectId, isStable], name: "idx_versions_stable")
+}
+
+model VersionContent {
+  id         String  @id @default(cuid())
+  projectId  String  @map("project_id")
+  versionId  String  @unique @map("version_id")
+  main       String  @default("")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version Version @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@map("version_contents")
+}
+
+model NodeContent {
+  versionId String @map("version_id")
+  nodeId    String @map("node_id")
+  content   String @default("")
+
+  version Version       @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  node    KnowledgeNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@id([versionId, nodeId])
+  @@map("node_contents")
+}
+
+model McpConfig {
+  id           String   @id @default(cuid())
+  projectId    String   @map("project_id")
+  name         String
+  description  String?
+  config       String  // JSON string
+  isActive     Boolean  @default(true) @map("is_active")
+  lastTestedAt DateTime? @map("last_tested_at")
+  testResult   String?   @map("test_result") // JSON string
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@map("mcp_configs")
+}
+
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String?
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
+}

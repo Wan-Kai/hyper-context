@@ -25,7 +25,9 @@
     "db:seed": "pnpm --filter backend db:seed",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "docker:up:script": "bash ./scripts/docker-up.sh",
+    "docker:down:script": "bash ./scripts/docker-down.sh"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

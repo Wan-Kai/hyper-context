@@ -24,13 +24,11 @@
 <script setup lang="ts">
 import { reactive, defineProps, defineEmits, watch } from 'vue'
 import FileTreeNode from './FileTreeNode.vue'
+import type { KnowledgeNode } from '@/api/types'
 
-type NodeType = 'file' | 'folder'
-interface Node { id: string; name: string; type: NodeType; parentId?: string | null; children?: Node[] }
-
-const props = defineProps<{ nodes: Node[]; selectedId?: string | null; editable?: boolean }>()
+const props = defineProps<{ nodes: KnowledgeNode[]; selectedId?: string | null; editable?: boolean }>()
 defineEmits<{
-  (e: 'select', node: Node): void
+  (e: 'select', node: KnowledgeNode): void
   (e: 'create-file', parentId: string | null): void
   (e: 'create-folder', parentId: string | null): void
   (e: 'delete-node', id: string): void
@@ -46,7 +44,7 @@ function toggle(id: string) {
 }
 
 // Auto-expand ancestors when selectedId changes so the selected node is visible
-function findPath(list: Node[], id: string, trail: string[] = []): string[] | null {
+function findPath(list: KnowledgeNode[], id: string, trail: string[] = []): string[] | null {
   for (const n of list) {
     if (n.id === id) return trail
     if (n.children && n.children.length) {
